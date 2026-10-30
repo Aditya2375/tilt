@@ -1,10 +1,11 @@
 # tilt
 
 A tiling window manager for X11 in C, on raw Xlib - no libraries beyond
-the X client library itself. Master-stack layout, nine workspaces, a
-status bar, keyboard-driven focus and window movement, and graceful
-ICCCM window closing. Windows are hidden by moving offscreen, never
-unmapped, so clients keep their state across workspace switches.
+the X client library itself. Master-stack layout with an adjustable
+split, nine workspaces, a status bar, keyboard-driven focus and window
+movement, floating for dialogs, and graceful ICCCM window closing.
+Windows are hidden by moving offscreen, never unmapped, so clients keep
+their state across workspace switches.
 
 ## Quick start
 
@@ -22,46 +23,65 @@ DISPLAY=:99 xterm &
 
 ## Keys
 
-All bindings use **Alt** as the modifier.
+All bindings use **Alt** as the modifier and work with Caps Lock and
+Num Lock in any state.
 
 | Keys | Action |
 |---|---|
 | `Alt+j` / `Alt+k` | focus next / previous window |
+| `Alt+h` / `Alt+l` | shrink / grow the master area |
 | `Alt+Enter` | make the focused window the master |
+| `Alt+Shift+Enter` | open a terminal (`TERMINAL` in `src/config.h`) |
 | `Alt+Shift+q` | close the focused window (WM_DELETE, else kill) |
 | `Alt+1..9` | switch to workspace 1..9 |
 | `Alt+Shift+1..9` | move the focused window to workspace 1..9 |
-| `Alt+q` | quit tilt |
+| `Alt+q` | quit tilt (hidden windows are brought back onscreen) |
 
 The bar shows all nine tags; the current tag is highlighted, occupied tags
-are bright, and the focused window's title sits on the right.
+are bright, and the focused window's title sits on the right, clipped so
+it never covers the tags.
 
 ## Layout
 
-New windows become the master (left half). Everything else stacks in equal
-rows on the right; the last row absorbs the rounding remainder so windows
-always reach the bottom edge exactly. 8px gaps, 3px borders; the focused
-window's border is cyan.
+New windows become the master. The master takes a configurable share of
+the width (50% by default, adjustable with `Alt+h/l` in 5% steps between
+10% and 90%); everything else stacks in equal rows on the right, the last
+row absorbing the rounding remainder so windows reach the bottom edge
+exactly. 8px gaps, 3px borders; the focused window's border is cyan.
+Transient windows and `_NET_WM_WINDOW_TYPE_DIALOG` float centered at half
+the screen size instead of tiling. No window is ever sized below one
+pixel: when more windows are open than the stack can fit, later rows
+overlap rather than produce an invalid geometry.
+
+## Configuration
+
+`src/config.h`: modifier, terminal command, border/gap/bar sizes, master
+step, and all colors. Rebuild after editing.
 
 ## Architecture and tests
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). `./tests/run-tests.sh`:
 
-- **Unit** - 220 checks on the pure layout function: exact geometry,
-  no overlaps, everything inside the screen for 1-9 windows, zero-chrome
-  and odd-size screens.
-- **Integration** - runs the real WM under Xvfb with real clients
-  (xlogo, xeyes, xclock), drives it with synthetic XTEST keys
-  (`tests/xpress.c`), and asserts tiled geometry, workspace hiding and
-  restore, moving windows between workspaces, and closing with reflow,
-  all through `xwininfo`.
+- **Unit** - 69 checks on the pure layout function: exact geometry,
+  master-ratio bounds, no zero or negative rects with 60 windows on a
+  small screen, overlap instead of overflow, absurdly small screens.
+- **Integration** - runs the real WM under Xvfb with real client windows
+  (`tests/xclient.c`, built by the suite), drives it with synthetic XTEST
+  keys (`tests/xpress.c`, needs libXtst), and asserts tiled geometry,
+  focus via `_NET_ACTIVE_WINDOW`, workspace hiding and restore, moving
+  windows between workspaces, master swap, master resize, bindings under
+  Num Lock, terminal spawn, closing with reflow, and clean exit on both
+  `Alt+q` and SIGTERM - all through `xwininfo`/`xprop` with polling
+  instead of fixed sleeps.
 
 ## Tested / not tested
 
 Tested here: everything in the integration suite above on a real X server
-(Xvfb), including a screenshot review of bar, borders, and tiling.
+(Xvfb), including focus, workspace switches, master resizing, terminal
+spawning, and shutdown behavior.
 
-Not tested: multiple monitors (Xinerama/RandR), floating windows and
-dialogs (everything tiles; a dialog gets a full tile), EWMH compliance
-beyond what the bar needs (no `_NET_*` hints, so panels and pagers won't
-talk to it), mouse-driven focus or resizing, and compositing effects.
+Not tested: multiple monitors (no Xinerama; RandR screen-size changes are
+handled via root `ConfigureNotify`), mouse-driven focus or resizing,
+compositing effects, and full EWMH compliance (tilt publishes
+`_NET_ACTIVE_WINDOW` and reads `_NET_WM_NAME`, but panels and pagers get
+no other hints).
