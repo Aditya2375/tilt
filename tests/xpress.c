@@ -26,10 +26,9 @@ int main(int argc, char **argv) {
         if (strlen(key) == 1) sym = (KeySym)key[0];
         else if (strcmp(key, "enter") == 0) sym = XK_Return;
         else if (strcmp(key, "space") == 0) sym = XK_space;
+        else if (strcmp(key, "numlock") == 0) sym = XK_Num_Lock;
         else { fprintf(stderr, "xpress: unknown key %s\n", key); continue; }
         KeyCode kc = XKeysymToKeycode(d, sym);
-        for (int m = 1; m <= 4; m <<= 1)   /* press modifiers */
-            ;
         if (mods & Mod1Mask) { KeyCode alt = XKeysymToKeycode(d, XK_Alt_L); XTestFakeKeyEvent(d, alt, True, 0); }
         if (mods & ShiftMask) { KeyCode sh = XKeysymToKeycode(d, XK_Shift_L); XTestFakeKeyEvent(d, sh, True, 0); }
         if (mods & ControlMask) { KeyCode ct = XKeysymToKeycode(d, XK_Control_L); XTestFakeKeyEvent(d, ct, True, 0); }
