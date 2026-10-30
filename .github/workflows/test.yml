@@ -14,6 +14,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get install -y libx11-dev libxtst-dev xvfb x11-apps x11-utils
+      - run: sudo apt-get update && sudo apt-get install -y libx11-dev libxtst-dev xvfb x11-utils
       - run: make
       - run: ./tests/run-tests.sh
+  sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libx11-dev libxtst-dev xvfb x11-utils
+      - run: |
+          mkdir -p build
+          cc -std=gnu11 -O1 -g -fsanitize=address,undefined -Wall -Wextra -Werror -Isrc \
+             tests/unit/test_layout.c src/layout.c -o build/test_layout_asan
+          ./build/test_layout_asan
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./tests/check-docs.sh
