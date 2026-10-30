@@ -1,0 +1,19 @@
+name: test
+on: [push, pull_request]
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir -p build
+          cc -std=gnu11 -O2 -g -Wall -Wextra -Werror -Isrc \
+             tests/unit/test_layout.c src/layout.c -o build/test_layout
+          ./build/test_layout
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libx11-dev libxtst-dev xvfb x11-apps x11-utils
+      - run: make
+      - run: ./tests/run-tests.sh
