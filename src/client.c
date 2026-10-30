@@ -4,18 +4,39 @@
 #include <stdlib.h>
 #include <string.h>
 
+static int is_transient(struct wm *wm, Window win) {
+    Window trans;
+    if (XGetTransientForHint(wm->dpy, win, &trans) && trans != None &&
+        trans != wm->root)
+        return 1;
+    /* dialogs by EWMH window type */
+    Atom actual;
+    int format;
+    unsigned long n, after;
+    unsigned char *prop = NULL;
+    if (XGetWindowProperty(wm->dpy, win, wm->net_wm_window_type, 0, 8, False,
+                           XA_ATOM, &actual, &format, &n, &after, &prop) == Success
+        && prop) {
+        Atom *types = (Atom *)prop;
+        for (unsigned long i = 0; i < n; i++)
+            if (types[i] == wm->net_wm_type_dialog) {
+                XFree(prop);
+                return 1;
+            }
+        XFree(prop);
+    }
+    return 0;
+}
+
 struct client *client_add(struct wm *wm, Window win) {
     struct workspace *ws = &wm->ws[wm->current];
     struct client *c = calloc(1, sizeof *c);
     if (!c) { perror("calloc"); exit(1); }
     c->win = win;
+    c->is_float = is_transient(wm, win);
     c->next = ws->clients;
     ws->clients = c;
-    char *name = NULL;
-    if (XFetchName(wm->dpy, win, &name) && name) {
-        snprintf(c->name, sizeof c->name, "%s", name);
-        XFree(name);
-    }
+    wm_fetch_title(wm, win, c->name, sizeof c->name);
     return c;
 }
 
@@ -28,7 +49,8 @@ struct client *client_find(struct wm *wm, Window win) {
 
 int client_count(struct workspace *ws) {
     int n = 0;
-    for (struct client *c = ws->clients; c; c = c->next) n++;
+    for (struct client *c = ws->clients; c; c = c->next)
+        if (!c->is_float) n++;
     return n;
 }
 
@@ -57,6 +79,12 @@ void client_focus(struct wm *wm, struct client *c) {
         XSetWindowBorder(wm->dpy, c->win, wm->col_focus);
         XRaiseWindow(wm->dpy, c->win);
         XSetInputFocus(wm->dpy, c->win, RevertToParent, CurrentTime);
+        XChangeProperty(wm->dpy, wm->root, wm->net_active_window, XA_WINDOW, 32,
+                        PropModeReplace, (unsigned char *)&c->win, 1);
+    } else {
+        Window none = None;
+        XChangeProperty(wm->dpy, wm->root, wm->net_active_window, XA_WINDOW, 32,
+                        PropModeReplace, (unsigned char *)&none, 1);
     }
     /* unfocus everyone else on this workspace */
     for (struct client *k = ws->clients; k; k = k->next)
