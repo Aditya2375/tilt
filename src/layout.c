@@ -19,7 +19,11 @@ void tile_layout(int n, int w, int h, int bar_h, int gaps, int mfact,
         out[0] = (struct rect){ax, ay, aw, ah};
         return;
     }
-    int master_w = clampi(aw * mfact / 1000, 1, aw - gaps - 1);
+    /* hi can dip below lo on absurdly narrow screens; keep it at 1 so
+       the clamp can never invert and return a negative width */
+    int hi = aw - gaps - 1;
+    if (hi < 1) hi = 1;
+    int master_w = clampi(aw * mfact / 1000, 1, hi);
     out[0] = (struct rect){ax, ay, master_w, ah};
     int stack_n = n - 1;
     int stack_x = ax + master_w + gaps;

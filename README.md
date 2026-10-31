@@ -62,7 +62,7 @@ step, and all colors. Rebuild after editing.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). `./tests/run-tests.sh`:
 
-- **Unit** - 69 checks on the pure layout function: exact geometry,
+- **Unit** - 73 checks on the pure layout function: exact geometry,
   master-ratio bounds, no zero or negative rects with 60 windows on a
   small screen, overlap instead of overflow, absurdly small screens.
 - **Integration** - runs the real WM under Xvfb with real client windows

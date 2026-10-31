@@ -36,6 +36,12 @@ int main(void) {
     tile_layout(3, 40, 40, 22, 8, 500, r);
     for (int i = 0; i < 3; i++)
         CHECK(r[i].w >= 1 && r[i].h >= 1, "tiny screen still yields rects");
+    tile_layout(2, 20, 600, 22, 8, 500, r);
+    for (int i = 0; i < 2; i++)
+        CHECK(r[i].w >= 1 && r[i].h >= 1, "20px-wide screen: no negative rect");
+    tile_layout(2, 18, 25, 22, 8, 500, r);
+    for (int i = 0; i < 2; i++)
+        CHECK(r[i].w >= 1 && r[i].h >= 1, "18x25 screen: rects never below 1x1");
 
     TEST_RESULTS();
 }
