@@ -7,6 +7,8 @@ movement, floating for dialogs, and graceful ICCCM window closing.
 Windows are hidden by moving offscreen, never unmapped, so clients keep
 their state across workspace switches.
 
+**[Live demo](https://aditya2375.github.io/tilt/)** - the real WM recorded under Xvfb with the CI keystroke harness.
+
 ## Quick start
 
 ```bash
