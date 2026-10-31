@@ -9,7 +9,7 @@ X events -> event loop (wm.c) -> client list ops (client.c) -> layout (layout.c)
 `layout.c` is a pure function - n windows plus screen, bar, gap, and
 master-ratio dimensions produce n rects, each clamped to at least one
 pixel (overflowing stacks overlap instead of producing invalid geometry).
-It knows nothing about X, which is why 69 assertions pin it without a
+It knows nothing about X, which is why 73 assertions pin it without a
 server. Everything X lives in `wm.c` and `client.c`.
 
 ## Managing windows
