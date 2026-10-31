@@ -298,13 +298,29 @@ static int on_error(Display *dpy, XErrorEvent *ev) {
 }
 
 static volatile sig_atomic_t got_signal = 0;
+
+/* append v in decimal, no libc: snprintf is not async-signal-safe */
+static size_t sig_putu(char *buf, size_t n, unsigned long v) {
+    char tmp[20];
+    int m = 0;
+    do { tmp[m++] = (char)('0' + v % 10); v /= 10; } while (v);
+    while (m) buf[n++] = tmp[--m];
+    return n;
+}
+
 static void on_signal(int sig, siginfo_t *info, void *ctx) {
     (void)ctx;
     got_signal = 1;
-    char buf[128];
-    int n = snprintf(buf, sizeof buf, "tilt: signal %d from pid %ld\n",
-                     sig, (long)(info ? info->si_pid : -1));
-    (void)!write(2, buf, (size_t)n);
+    char buf[64];
+    size_t n = 0;
+    static const char pfx[] = "tilt: signal ";
+    static const char mid[] = " from pid ";
+    for (size_t i = 0; i < sizeof pfx - 1; i++) buf[n++] = pfx[i];
+    n = sig_putu(buf, n, (unsigned long)sig);
+    for (size_t i = 0; i < sizeof mid - 1; i++) buf[n++] = mid[i];
+    n = sig_putu(buf, n, (unsigned long)(info ? info->si_pid : 0));
+    buf[n++] = '\n';
+    (void)!write(2, buf, n);
 }
 
 int main(void) {
