@@ -85,7 +85,12 @@ void wm_draw_bar(struct wm *wm) {
     int x = 6;
     for (int i = 0; i < WORKSPACES; i++) {
         char tag[4];
-        snprintf(tag, sizeof tag, " %d ", i + 1);
+        /* i + 1 <= WORKSPACES <= 9, so this is always ' N' + NUL; gcc
+           cannot prove that and -Wformat-truncation fires on snprintf */
+        tag[0] = ' ';
+        tag[1] = (char)('1' + i);
+        tag[2] = ' ';
+        tag[3] = '\0';
         int occupied = wm->ws[i].clients != NULL;
         int current = i == wm->current;
         if (current) {
