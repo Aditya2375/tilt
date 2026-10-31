@@ -9,7 +9,6 @@
 #define GAPS         8
 #define BAR_H        22
 #define WORKSPACES   9
-#define MIN_WIN      40         /* windows never get smaller than this */
 #define MFACT_STEP   50         /* master-resize step, per-mille of width */
 
 #define COL_FOCUS    "#33ccff"

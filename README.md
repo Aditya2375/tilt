@@ -85,3 +85,9 @@ handled via root `ConfigureNotify`), mouse-driven focus or resizing,
 compositing effects, and full EWMH compliance (tilt publishes
 `_NET_ACTIVE_WINDOW` and reads `_NET_WM_NAME`, but panels and pagers get
 no other hints).
+
+Known limit: window titles are fetched correctly (UTF-8 `_NET_WM_NAME`
+wins over `WM_NAME`), but the bar draws them with the core X "fixed"
+font, so titles outside Latin-1 render as mojibake. Proper rendering
+needs an Xft or fontset-based bar, which tilt deliberately does not
+depend on.
