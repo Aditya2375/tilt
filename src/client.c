@@ -17,12 +17,17 @@ static int is_transient(struct wm *wm, Window win) {
     if (XGetWindowProperty(wm->dpy, win, wm->net_wm_window_type, 0, 8, False,
                            XA_ATOM, &actual, &format, &n, &after, &prop) == Success
         && prop) {
-        Atom *types = (Atom *)prop;
-        for (unsigned long i = 0; i < n; i++)
-            if (types[i] == wm->net_wm_type_dialog) {
-                XFree(prop);
-                return 1;
-            }
+        /* only an Atom array at format 32 may be read as Atom*; a client
+           can store the property at any format, and reading n Atoms from
+           an n-byte format-8 buffer is a heap over-read */
+        if (actual == XA_ATOM && format == 32) {
+            Atom *types = (Atom *)prop;
+            for (unsigned long i = 0; i < n; i++)
+                if (types[i] == wm->net_wm_type_dialog) {
+                    XFree(prop);
+                    return 1;
+                }
+        }
         XFree(prop);
     }
     return 0;

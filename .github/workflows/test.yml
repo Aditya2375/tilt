@@ -27,6 +27,8 @@ jobs:
           cc -std=gnu11 -O1 -g -fsanitize=address,undefined -Wall -Wextra -Werror -Isrc \
              tests/unit/test_layout.c src/layout.c -o build/test_layout_asan
           ./build/test_layout_asan
+      - run: make CC=gcc CFLAGS="-O1 -g -fsanitize=address,undefined"
+      - run: ./tests/run-tests.sh
   docs:
     runs-on: ubuntu-latest
     steps:

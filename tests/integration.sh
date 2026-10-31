@@ -80,6 +80,17 @@ wait_cond 5 '[ "$(geom dlg)" = "400x300+200+150" ]' || fail "solo dialog geometr
 kill $DLG_PID 2>/dev/null; wait $DLG_PID 2>/dev/null || true
 ok
 
+say "a format-8 window-type property is not misread as a dialog"
+./build/xclient bad8 --dialog8 & BAD_PID=$!; CLIENTS="$CLIENTS $BAD_PID"
+# must not crash the WM (ASan build aborts on the over-read) and the
+# window must tile like any other client, not float as a dialog
+sleep 1
+kill -0 $TILT_PID 2>/dev/null || fail "WM died on a format-8 property"
+wait_cond 5 '[ "$(geom bad8)" = "400x300+200+150" ]' && fail "format-8 client floated like a dialog: $(geom bad8)"
+kill -0 $TILT_PID 2>/dev/null || fail "WM died after mapping format-8 client"
+kill $BAD_PID 2>/dev/null; wait $BAD_PID 2>/dev/null || true
+ok
+
 say "alt+1 restores the tiled layout"
 ./build/xpress alt+1
 wait_cond 5 '[ "$(geoms)" = "$want" ]' || fail "not restored: $(geoms | tr '\n' ' ')"

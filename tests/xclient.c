@@ -25,6 +25,14 @@ int main(int argc, char **argv) {
         XChangeProperty(d, w, type, XA_ATOM, 32, PropModeReplace,
                         (unsigned char *)&dlg, 1);
     }
+    if (argc > 2 && strcmp(argv[2], "--dialog8") == 0) {
+        /* malformed: the EWMH type property stored at format 8 instead of
+           32. A WM that reads it as Atom* over-reads the buffer. */
+        Atom type = XInternAtom(d, "_NET_WM_WINDOW_TYPE", False);
+        const char junk[8] = "notatom!";
+        XChangeProperty(d, w, type, XA_ATOM, 8, PropModeReplace,
+                        (const unsigned char *)junk, 8);
+    }
     XMapWindow(d, w);
     XFlush(d);
     for (;;) {
