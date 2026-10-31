@@ -74,6 +74,12 @@ say "alt+2 hides all clients offscreen"
 wait_cond 3 'geom one | grep -q -- "+-3000+-3000"' || fail "not hidden: $(geom one)"
 ok
 
+say "a solo dialog floats centered on the empty workspace"
+./build/xclient dlg --dialog & DLG_PID=$!; CLIENTS="$CLIENTS $DLG_PID"
+wait_cond 5 '[ "$(geom dlg)" = "400x300+200+150" ]' || fail "solo dialog geometry: $(geom dlg)"
+kill $DLG_PID 2>/dev/null; wait $DLG_PID 2>/dev/null || true
+ok
+
 say "alt+1 restores the tiled layout"
 ./build/xpress alt+1
 wait_cond 5 '[ "$(geoms)" = "$want" ]' || fail "not restored: $(geoms | tr '\n' ' ')"
@@ -172,7 +178,7 @@ say "SIGTERM also shuts down cleanly"
 TILT_PID=$!
 wait_cond 5 'xwininfo -root -children | grep -q "\"tilt-bar\""' || fail "restart failed"
 kill -TERM $TILT_PID
-./build/xclient five & CLIENTS="$CLIENTS $!"   # any event wakes the loop
+# no client gets mapped here: the loop must notice the signal while idle
 gone=0; n=50
 while [ "$n" -gt 0 ]; do kill -0 $TILT_PID 2>/dev/null || { gone=1; break; }; sleep 0.1; n=$((n-1)); done
 [ "$gone" -eq 1 ] || fail "tilt did not exit on SIGTERM"

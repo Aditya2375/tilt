@@ -3,6 +3,7 @@
 
 #include <X11/Xatom.h>
 #include <X11/keysym.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,6 +43,16 @@ void wm_fetch_title(struct wm *wm, Window win, char *buf, size_t cap) {
 
 void wm_arrange(struct wm *wm) {
     struct workspace *ws = &wm->ws[wm->current];
+    /* floats center and raise no matter how many tiled clients exist -
+       including zero, so a solo dialog still gets dialog geometry */
+    for (struct client *c = ws->clients; c; c = c->next) {
+        if (!c->is_float) continue;
+        int fw = wm->screen_w / 2, fh = wm->screen_h / 2;
+        XMoveResizeWindow(wm->dpy, c->win,
+                          (wm->screen_w - fw) / 2, (wm->screen_h - fh) / 2,
+                          (unsigned)fw, (unsigned)fh);
+        XRaiseWindow(wm->dpy, c->win);
+    }
     int n = client_count(ws);
     if (n == 0) { wm_draw_bar(wm); return; }
     struct rect *rects = malloc((size_t)n * sizeof *rects);
@@ -49,14 +60,7 @@ void wm_arrange(struct wm *wm) {
     tile_layout(n, wm->screen_w, wm->screen_h, BAR_H, GAPS, wm->mfact, rects);
     int i = 0;
     for (struct client *c = ws->clients; c; c = c->next) {
-        if (c->is_float) {              /* centered, half screen */
-            int fw = wm->screen_w / 2, fh = wm->screen_h / 2;
-            XMoveResizeWindow(wm->dpy, c->win,
-                              (wm->screen_w - fw) / 2, (wm->screen_h - fh) / 2,
-                              (unsigned)fw, (unsigned)fh);
-            XRaiseWindow(wm->dpy, c->win);
-            continue;
-        }
+        if (c->is_float) continue;      /* placed above */
         int cw = rects[i].w - 2 * BORDER;
         int ch = rects[i].h - 2 * BORDER;
         XMoveResizeWindow(wm->dpy, c->win, rects[i].x, rects[i].y,
@@ -331,7 +335,7 @@ int main(void) {
     struct sigaction sa;
     memset(&sa, 0, sizeof sa);
     sa.sa_sigaction = on_signal;
-    sa.sa_flags = SA_RESTART | SA_SIGINFO;
+    sa.sa_flags = SA_SIGINFO;   /* no SA_RESTART: poll wakes with EINTR */
     sigaction(SIGTERM, &sa, NULL);
     sigaction(SIGINT, &sa, NULL);
     signal(SIGCHLD, SIG_IGN);   /* reap spawned terminals automatically */
@@ -356,7 +360,15 @@ int main(void) {
     XSync(wm.dpy, False);
 
     fprintf(stderr, "tilt: running on %dx%d\n", wm.screen_w, wm.screen_h);
+    int xfd = XConnectionNumber(wm.dpy);
     while (wm.running && !got_signal) {
+        /* drain queued events, then wait in poll (not XNextEvent) so a
+           signal interrupts the wait even when no X traffic arrives */
+        if (XPending(wm.dpy) == 0) {
+            struct pollfd pfd = { .fd = xfd, .events = POLLIN };
+            int pr = poll(&pfd, 1, 1000);
+            if (pr <= 0) continue;   /* EINTR from a signal, or timeout */
+        }
         XEvent ev;
         XNextEvent(wm.dpy, &ev);
         if (got_signal) break;

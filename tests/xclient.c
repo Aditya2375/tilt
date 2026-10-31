@@ -2,6 +2,7 @@
    named after argv[1] and sits on the event loop. Sets _NET_WM_NAME too,
    like a modern client. */
 #include <X11/Xlib.h>
+#include <X11/Xatom.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -18,6 +19,12 @@ int main(int argc, char **argv) {
     Atom utf8 = XInternAtom(d, "UTF8_STRING", False);
     XChangeProperty(d, w, net_name, utf8, 8, PropModeReplace,
                     (unsigned char *)argv[1], (int)strlen(argv[1]));
+    if (argc > 2 && strcmp(argv[2], "--dialog") == 0) {
+        Atom type = XInternAtom(d, "_NET_WM_WINDOW_TYPE", False);
+        Atom dlg = XInternAtom(d, "_NET_WM_WINDOW_TYPE_DIALOG", False);
+        XChangeProperty(d, w, type, XA_ATOM, 32, PropModeReplace,
+                        (unsigned char *)&dlg, 1);
+    }
     XMapWindow(d, w);
     XFlush(d);
     for (;;) {
